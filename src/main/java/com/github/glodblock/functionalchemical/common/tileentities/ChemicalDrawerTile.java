@@ -20,8 +20,9 @@ import com.hrznstudio.titanium.annotation.Save;
 import com.hrznstudio.titanium.block.BasicTileBlock;
 import com.hrznstudio.titanium.component.inventory.InventoryComponent;
 import mekanism.api.chemical.Chemical;
-import mekanism.api.chemical.ChemicalStack;
-import mekanism.api.chemical.IChemicalHandler;
+import com.github.glodblock.functionalchemical.common.inventory.ChemicalContents;
+import mekanism.api.chemical.ChemicalResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 import mekanism.api.radiation.IRadiationManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -32,7 +33,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.common.util.INBTSerializable;
+import com.hrznstudio.titanium.nbthandler.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 
 public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTile> implements ChemicalHost {
@@ -70,13 +71,19 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
         return this.getTankCapacity(this.getStorageMultiplier());
     }
 
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        onRemove();
+        super.preRemoveSideEffects(pos, state);
+    }
+
     public void onRemove() {
         if (this.level != null && this.isServer() && IRadiationManager.INSTANCE.isRadiationEnabled() && !this.isCreative()) {
             IRadiationManager.INSTANCE.dumpRadiation(
                     this.level,
                     this.worldPosition,
-                    this.handler,
-                    false
+                    java.util.Arrays.asList(this.handler.getInternalTanks()),
+                    false, null
             );
         }
     }
@@ -87,7 +94,7 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
             if (this.isLocked()) {
                 return new RenderStatus(this.filter.filter()[slot], true);
             } else {
-                return new RenderStatus(ChemicalStack.EMPTY, false);
+                return new RenderStatus(ChemicalContents.EMPTY, false);
             }
         } else {
             return new RenderStatus(stored, false);
@@ -124,7 +131,7 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
         for (int i = 0; i < this.type.getSlots(); i++) {
             this.filter.filter()[i] = this.handler.getChemicalInTank(i).copy();
             if (!this.filter.filter()[i].isEmpty()) {
-                this.filter.filter()[i].setAmount(1);
+                this.filter.filter()[i] = this.filter.filter()[i].copyWithAmount(1);
             }
         }
         this.syncObject(this.filter);
@@ -157,7 +164,6 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
         return true;
     }
 
-    @OnlyIn(Dist.CLIENT)
     public void initClient() {
         super.initClient();
         var slotName = "";
@@ -208,7 +214,7 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
                     return ItemStack.EMPTY;
                 } else {
                     ItemStack stack = this.getStackInSlot(slot);
-                    if (stack.has(FSAttachments.FLUID_STORAGE_MODIFIER)) {
+                    if (stack.has(FCSingletons.CHEM_STORAGE_MODIFIER)) {
                         ItemStack[] replacement = new ItemStack[this.getSlots()];
                         replacement[slot] = ItemStack.EMPTY;
                         var newSize = SizeProvider.calculateAsFactor(this, FCSingletons::getChemStorageModifier, (float) ChemicalDrawerTile.this.baseSize, replacement);
@@ -255,8 +261,8 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
     }
 
     @Override
-    public void loadAdditional(@NotNull CompoundTag compound, HolderLookup.Provider provider) {
-        super.loadAdditional(compound, provider);
+    public void loadAdditional(net.minecraft.world.level.storage.ValueInput input) {
+        super.loadAdditional(input);
         this.setCapacity(this.getCapacity());
     }
 
@@ -283,16 +289,16 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
     }
 
     @Override
-    public IChemicalHandler getChemicalHandler() {
+    public ResourceHandler<ChemicalResource> getChemicalHandler() {
         return this.handler;
     }
 
-    public record SyncFilter(ChemicalStack[] filter) implements INBTSerializable<CompoundTag> {
+    public record SyncFilter(ChemicalContents[] filter) implements INBTSerializable<CompoundTag> {
 
         public SyncFilter(int slot) {
-            this(new ChemicalStack[slot]);
+            this(new ChemicalContents[slot]);
             for (int i = 0; i < slot; i++) {
-                this.filter[i] = ChemicalStack.EMPTY;
+                this.filter[i] = ChemicalContents.EMPTY;
             }
         }
 
@@ -311,9 +317,9 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
         public void deserializeNBT(HolderLookup.@NotNull Provider lookup, @NotNull CompoundTag nbt) {
             for (int i = 0; i < this.filter.length; i++) {
                 if (nbt.contains("#" + i)) {
-                    this.filter[i] = ChemicalStack.parseOptional(lookup, nbt.getCompound("#" + i));
+                    this.filter[i] = ChemicalContents.parseOptional(lookup, nbt.getCompoundOrEmpty("#" + i));
                 } else {
-                    this.filter[i] = ChemicalStack.EMPTY;
+                    this.filter[i] = ChemicalContents.EMPTY;
                 }
             }
         }
@@ -339,7 +345,7 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
             var tanks = this.handler.getInternalTanks();
             for (int i = 0; i < tanks.length; i++) {
                 if (nbt.contains("#" + i)) {
-                    tanks[i].deserializeNBT(lookup, nbt.getCompound("#" + i));
+                    tanks[i].deserializeNBT(lookup, nbt.getCompoundOrEmpty("#" + i));
                 } else {
                     tanks[i].setEmpty();
                 }
@@ -348,7 +354,7 @@ public class ChemicalDrawerTile extends ControllableDrawerTile<ChemicalDrawerTil
 
     }
 
-    public record RenderStatus(ChemicalStack stack, boolean isFilter) {
+    public record RenderStatus(ChemicalContents stack, boolean isFilter) {
 
         public boolean valid() {
             return this.stack != null && !this.stack.isEmpty();

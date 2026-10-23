@@ -1,19 +1,9 @@
 {
-  "neoforge:conditions": [
-    {
-      "type": "neoforge:item_exists",
-      "item": "functionalchemical:framed_chem_2"
-    }
-  ],
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "C": {
-      "item": "mekanism:basic_chemical_tank"
-    },
-    "P": {
-      "tag": "c:nuggets/iron"
-    }
+    "C": "mekanism:basic_chemical_tank",
+    "P": "#c:nuggets/iron"
   },
   "pattern": [
     "PCP",

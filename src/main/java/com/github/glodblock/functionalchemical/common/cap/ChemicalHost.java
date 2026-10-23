@@ -1,13 +1,14 @@
 package com.github.glodblock.functionalchemical.common.cap;
 
-import mekanism.api.chemical.IChemicalHandler;
+import mekanism.api.chemical.ChemicalResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.minecraft.core.Direction;
 
 public interface ChemicalHost {
 
-    IChemicalHandler getChemicalHandler();
+    ResourceHandler<ChemicalResource> getChemicalHandler();
 
-    default IChemicalHandler getChemicalHandler(Direction side) {
+    default ResourceHandler<ChemicalResource> getChemicalHandler(Direction side) {
         return getChemicalHandler();
     }
 

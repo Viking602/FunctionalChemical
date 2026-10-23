@@ -20,25 +20,25 @@ ordering="NONE"
 side="BOTH"
 [[dependencies.functionalchemical]]
     modId="minecraft"
-    mandatory=true
+    type="required"
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
 [[dependencies.functionalchemical]]
     modId="glodium"
-    mandatory=true
+    type="required"
     versionRange="*"
     ordering="AFTER"
     side="BOTH"
 [[dependencies.functionalchemical]]
     modId="mekanism"
-    mandatory=true
-    versionRange="[10.7.17,)"
+    type="required"
+    versionRange="[10.8.0,10.9)"
     ordering="AFTER"
     side="BOTH"
 [[dependencies.functionalchemical]]
     modId="functionalstorage"
-    mandatory=true
-    versionRange="[1.21.1-1.5.8,)"
+    type="required"
+    versionRange="[26.1.2-1.6.2,26.2)"
     ordering="AFTER"
     side="BOTH"

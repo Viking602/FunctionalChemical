@@ -21,15 +21,6 @@ public class RadioactiveDrawerBlock extends ChemicalDrawerBlock {
         return (blockPos, state) -> new RadioactiveDrawerTile(this, FCRegistryHandler.INSTANCE.getTileType(this), blockPos, state);
     }
 
-    @Override
-    public void registerRecipe(@NotNull RecipeOutput consumer) {
-        TitaniumShapedRecipeBuilder.shapedRecipe(this)
-                .pattern("PPP")
-                .pattern("PCP")
-                .pattern("PPP")
-                .define('P', ItemTags.PLANKS)
-                .define('C', MekanismBlocks.RADIOACTIVE_WASTE_BARREL)
-                .save(consumer);
-    }
+
 
 }

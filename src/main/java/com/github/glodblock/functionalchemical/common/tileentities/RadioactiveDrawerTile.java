@@ -6,7 +6,8 @@ import com.github.glodblock.functionalchemical.common.inventory.MultiSlotChemica
 import com.github.glodblock.functionalchemical.common.inventory.RadioactiveDrawerTank;
 import com.github.glodblock.functionalchemical.common.items.DecayUpgradeItem;
 import com.hrznstudio.titanium.block.BasicTileBlock;
-import mekanism.api.Action;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
+import mekanism.api.AutomationType;
 import mekanism.api.MekanismAPITags;
 import mekanism.common.config.MekanismConfig;
 import net.minecraft.core.BlockPos;
@@ -54,7 +55,10 @@ public class RadioactiveDrawerTile extends ChemicalDrawerTile {
                         for (var tank : this.handler.getInternalTanks()) {
                             var chem = tank.getStack();
                             if (!chem.isEmpty() && !chem.is(MekanismAPITags.Chemicals.WASTE_BARREL_DECAY_BLACKLIST)) {
-                                tank.shrinkStack(toDecay, Action.EXECUTE);
+                                try (var tx = Transaction.openRoot()) {
+                                    tank.extract(tank.resource(), (int)Math.min(Integer.MAX_VALUE, toDecay), tx, AutomationType.INTERNAL);
+                                    tx.commit();
+                                }
                             }
                         }
                     }

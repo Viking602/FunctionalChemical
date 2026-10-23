@@ -3,7 +3,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.neoforged.moddev' version '1.0.15'
+    id 'net.neoforged.moddev' version '2.0.144'
 }
 
 version = mod_version
@@ -17,7 +17,7 @@ base {
     archivesName = mod_jar_name
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 neoForge {
 
@@ -44,7 +44,7 @@ neoForge {
         }
 
         data {
-            data()
+            clientData()
             programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
         }
 
@@ -79,15 +79,14 @@ repositories {
     }
 }
 
+apply from: 'gradle/viking602-dependencies.gradle'
 dependencies {
-    implementation "io.github.glodblock:Glodium:1.21-2.2-neoforge"
-    implementation "mekanism:Mekanism:1.21.1-10.7.17.83"
-    implementation "curse.maven:functional-storage-556861:8459097"
-    implementation "com.hrznstudio:titanium:1.21-4.0.42"
-    // runtime test
-    runtimeOnly "mezz.jei:jei-1.21.1-neoforge:19.21.0.247"
-    runtimeOnly "curse.maven:jade-324717:5427817"
+    implementation viking602PinnedFiles
+    implementation files('../Mekanism/build/libs/Mekanism-26.1.2-10.8.0-viking602.1.homebaked.jar')
 }
+java.withSourcesJar()
+tasks.named('jar') { from('LICENSE') { into 'META-INF/licenses/functionalchemical' } }
+
 
 tasks.withType(ProcessResources).configureEach {
     var replaceProperties = [
@@ -121,4 +120,30 @@ publishing {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}
+
+sourceSets {
+    verification {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+neoForge {
+    addModdingDependenciesTo(sourceSets.verification)
+    mods { functionalchemical_verification { sourceSet sourceSets.verification } }
+    runs {
+        verifyServer {
+            server()
+            sourceSet = sourceSets.verification
+            gameDirectory = file('../test-functionalchemical-server-20261011')
+            programArguments.add('--nogui')
+            systemProperty('functionalchemical.verify', 'true')
+        }
+        verifyClient {
+            client()
+            sourceSet = sourceSets.verification
+            gameDirectory = file('../test-functionalchemical-client-20261011')
+            systemProperty('functionalchemical.verify.client', 'true')
+        }
+    }
 }

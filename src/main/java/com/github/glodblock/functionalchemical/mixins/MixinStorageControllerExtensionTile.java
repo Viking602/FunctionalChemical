@@ -3,7 +3,8 @@ package com.github.glodblock.functionalchemical.mixins;
 import com.buuz135.functionalstorage.block.tile.StorageControllerExtensionTile;
 import com.buuz135.functionalstorage.block.tile.StorageControllerTile;
 import com.github.glodblock.functionalchemical.common.cap.ChemicalHost;
-import mekanism.api.chemical.IChemicalHandler;
+import mekanism.api.chemical.ChemicalResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 
@@ -17,7 +18,7 @@ public abstract class MixinStorageControllerExtensionTile implements ChemicalHos
     protected abstract Optional<StorageControllerTile<?>> getControllerInstance();
 
     @Override
-    public IChemicalHandler getChemicalHandler() {
+    public ResourceHandler<ChemicalResource> getChemicalHandler() {
         return this.getControllerInstance().map(c -> ((ChemicalHost) c).getChemicalHandler()).orElse(null);
     }
 

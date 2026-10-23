@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "functionalchemical:item/decay_upgrade"
+  }
+}

@@ -1,17 +1,11 @@
 {
-  "neoforge:conditions": [
-    {
-      "type": "neoforge:item_exists",
-      "item": "functionalchemical:framed_chem_2"
-    }
-  ],
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_item": {
+    "has_tank": {
       "conditions": {
         "items": [
           {
-            "items": "#c:nuggets/iron"
+            "items": "mekanism:basic_chemical_tank"
           }
         ]
       },
@@ -27,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_item"
+      "has_tank"
     ]
   ],
   "rewards": {

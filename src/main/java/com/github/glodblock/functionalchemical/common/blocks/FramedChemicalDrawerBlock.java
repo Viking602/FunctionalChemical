@@ -22,17 +22,6 @@ public class FramedChemicalDrawerBlock extends ChemicalDrawerBlock implements Fr
         return (blockPos, state) -> new FramedChemicalDrawerTile(this, FCRegistryHandler.INSTANCE.getTileType(this), blockPos, state, this.getType());
     }
 
-    @Override
-    public void registerRecipe(@NotNull RecipeOutput consumer) {
-        if (this.getType() == FunctionalStorage.DrawerType.X_1) {
-            TitaniumShapedRecipeBuilder.shapedRecipe(this).pattern("PPP").pattern("PCP").pattern("PPP").define('P', Tags.Items.NUGGETS_IRON).define('C', MekanismBlocks.BASIC_CHEMICAL_TANK).save(consumer);
-        }
-        if (this.getType() == FunctionalStorage.DrawerType.X_2) {
-            TitaniumShapedRecipeBuilder.shapedRecipe(this, 2).pattern("PCP").pattern("PPP").pattern("PCP").define('P', Tags.Items.NUGGETS_IRON).define('C', MekanismBlocks.BASIC_CHEMICAL_TANK).save(consumer);
-        }
-        if (this.getType() == FunctionalStorage.DrawerType.X_4) {
-            TitaniumShapedRecipeBuilder.shapedRecipe(this, 4).pattern("CPC").pattern("PPP").pattern("CPC").define('P', Tags.Items.NUGGETS_IRON).define('C', MekanismBlocks.BASIC_CHEMICAL_TANK).save(consumer);
-        }
-    }
+
 
 }

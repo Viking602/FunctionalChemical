@@ -1,0 +1,34 @@
+// Exact official artifacts and embedded APIs used to compile this source port.
+def project02Pins = new groovy.json.JsonSlurper().parse(file('gradle/project02-dependencies.json'))
+def project02Cache = file('.gradle/project02-dependencies')
+def project02Targets = project02Pins.collect { new File(project02Cache, it.filename) }
+def project02Downloads = tasks.register('downloadProject02Dependencies') {
+    inputs.file('gradle/project02-dependencies.json')
+    outputs.files(project02Targets)
+    doLast {
+        project02Cache.mkdirs()
+        project02Pins.each { pin ->
+            def target = new File(project02Cache, pin.filename)
+            if (!target.exists()) {
+                byte[] bytes
+                if (pin.parentFilename) {
+                    def archive = new java.util.zip.ZipFile(new File(project02Cache, pin.parentFilename))
+                    try { bytes = archive.getInputStream(archive.getEntry(pin.entry)).bytes }
+                    finally { archive.close() }
+                } else {
+                    def connection = new URI(pin.url).toURL().openConnection()
+                    connection.connectTimeout = 30000
+                    connection.readTimeout = 90000
+                    connection.setRequestProperty('User-Agent', 'Viking602/project02-source-port/1.0')
+                    bytes = connection.inputStream.withCloseable { it.bytes }
+                }
+                def actual = java.security.MessageDigest.getInstance('SHA-512').digest(bytes).encodeHex().toString()
+                if (actual != pin.sha512) throw new GradleException('Dependency checksum mismatch: ' + pin.filename)
+                target.bytes = bytes
+            }
+            def actual = java.security.MessageDigest.getInstance('SHA-512').digest(target.bytes).encodeHex().toString()
+            if (actual != pin.sha512) throw new GradleException('Cached dependency checksum mismatch: ' + pin.filename)
+        }
+    }
+}
+ext.project02PinnedFiles = files(project02Targets).builtBy(project02Downloads)

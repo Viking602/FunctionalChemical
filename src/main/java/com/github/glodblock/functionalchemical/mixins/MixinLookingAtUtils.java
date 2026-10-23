@@ -28,13 +28,13 @@ public abstract class MixinLookingAtUtils {
             var handler = host.getChemicalHandler();
             if (handler != null) {
                 int maxInfo = 4;
-                for (int i = 0; i < handler.getChemicalTanks(); i++) {
+                for (int i = 0; i < handler.size(); i++) {
                     if (maxInfo <= 0) {
                         break;
                     }
-                    if (!handler.getChemicalInTank(i).isEmpty()) {
+                    if (!handler.getResource(i).isEmpty()) {
                         maxInfo --;
-                        info.addChemicalElement(new ChemicalElement(handler.getChemicalInTank(i), handler.getChemicalTankCapacity(i)));
+                        info.addChemicalElement(new ChemicalElement(new mekanism.api.resource.LargeResourceStack<>(handler.getResource(i), handler.getAmountAsLong(i)), handler.getCapacityAsLong(i, handler.getResource(i))));
                     }
                 }
             }

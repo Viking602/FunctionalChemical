@@ -8,7 +8,8 @@ import com.github.glodblock.functionalchemical.util.asm.ChemicalController;
 import com.github.glodblock.functionalchemical.util.asm.ChemicalModule;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import mekanism.api.chemical.IChemicalHandler;
+import mekanism.api.chemical.ChemicalResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -33,7 +34,7 @@ public abstract class MixinConnectedDrawers implements ChemicalModule {
     @Shadow(remap = false)
     private StorageControllerTile<?> controllerTile;
     @Unique
-    private List<IChemicalHandler> chemHandlers;
+    private List<ResourceHandler<ChemicalResource>> chemHandlers;
 
     @Unique
     private void init() {
@@ -51,7 +52,7 @@ public abstract class MixinConnectedDrawers implements ChemicalModule {
 
     @Inject(
             method = "rebuild",
-            at = @At("HEAD"),
+            at = @At(value = "FIELD", target = "Lcom/buuz135/functionalstorage/util/ConnectedDrawers;itemHandlers:Ljava/util/List;", opcode = org.objectweb.asm.Opcodes.PUTFIELD),
             remap = false
     )
     private void onRebuild(CallbackInfo ci) {
@@ -108,7 +109,7 @@ public abstract class MixinConnectedDrawers implements ChemicalModule {
     }
 
     @Override
-    public List<IChemicalHandler> getHandlers() {
+    public List<ResourceHandler<ChemicalResource>> getHandlers() {
         return this.chemHandlers;
     }
 

@@ -7,7 +7,8 @@ import com.github.glodblock.functionalchemical.common.inventory.ControllerChemic
 import com.github.glodblock.functionalchemical.util.asm.ChemicalController;
 import com.github.glodblock.functionalchemical.util.asm.ChemicalModule;
 import com.hrznstudio.titanium.block.BasicTileBlock;
-import mekanism.api.chemical.IChemicalHandler;
+import mekanism.api.chemical.ChemicalResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -60,7 +61,7 @@ public abstract class MixinStorageControllerTile implements ChemicalController, 
     }
 
     @Override
-    public IChemicalHandler getChemicalHandler() {
+    public ResourceHandler<ChemicalResource> getChemicalHandler() {
         return this.chemHandler;
     }
 

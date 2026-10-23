@@ -9,7 +9,8 @@ import com.github.glodblock.functionalchemical.config.FunctionalChemicalConfig;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import mekanism.api.Action;
+import net.neoforged.neoforge.transfer.ResourceHandlerUtil;
+import net.neoforged.neoforge.transfer.transaction.Transaction;
 import mekanism.common.capabilities.Capabilities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -26,34 +27,11 @@ public record MoveChemicalBehavior(boolean drawerIsSource, int chemPerOperation)
             Direction direction = UpgradeItem.getDirection(upgradeStack);
             var otherChemHandler = level.getCapability(Capabilities.CHEMICAL.block(), pos.relative(direction), direction.getOpposite());
             if (otherChemHandler != null) {
-                if (this.drawerIsSource) {
-                    for (var chemTank : drawer.getChemTank().handler().getInternalTanks()) {
-                        if (!chemTank.getStack().isEmpty()) {
-                            var extracted = chemTank.extractChemical(FunctionalChemicalConfig.UPGRADE_PUSH_CHEMICAL, Action.SIMULATE);
-                            if (!extracted.isEmpty()) {
-                                var overflow = otherChemHandler.insertChemical(extracted, Action.EXECUTE);
-                                var actuallyDrain = extracted.copyWithAmount(extracted.getAmount() - overflow.getAmount());
-                                if (!actuallyDrain.isEmpty()) {
-                                    chemTank.extractChemical(actuallyDrain.getAmount(), Action.EXECUTE);
-                                    drawer.onChange();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    for (var chemTank : drawer.getChemTank().handler().getInternalTanks()) {
-                        var extracted = otherChemHandler.extractChemical(FunctionalStorageConfig.UPGRADE_PULL_FLUID, Action.SIMULATE);
-                        if (!extracted.isEmpty()) {
-                            var overflow = chemTank.insertChemical(extracted, Action.EXECUTE);
-                            var actuallyDrain = extracted.copyWithAmount(extracted.getAmount() - overflow.getAmount());
-                            if (!actuallyDrain.isEmpty()) {
-                                otherChemHandler.extractChemical(actuallyDrain.getAmount(), Action.EXECUTE);
-                                drawer.onChange();
-                                break;
-                            }
-                        }
-                    }
+                var own = drawer.getChemicalHandler();
+                try (var tx = Transaction.openRoot()) {
+                    ResourceHandlerUtil.moveFirst(drawerIsSource ? own : otherChemHandler,
+                        drawerIsSource ? otherChemHandler : own, r -> true, chemPerOperation, tx);
+                    tx.commit();
                 }
             }
         }

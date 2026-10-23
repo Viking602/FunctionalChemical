@@ -1,0 +1,13 @@
+modLoader="javafml"
+loaderVersion="[10,)"
+license="LGPL-3.0-only"
+[[mods]]
+modId="functionalchemical_verification"
+version="1.0"
+displayName="Functional Chemical disposable verification"
+[[dependencies.functionalchemical_verification]]
+modId="functionalchemical"
+type="required"
+versionRange="*"
+ordering="AFTER"
+side="BOTH"

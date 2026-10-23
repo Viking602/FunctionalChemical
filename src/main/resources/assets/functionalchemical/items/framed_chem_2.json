@@ -1,0 +1,21 @@
+{
+  "model": {
+    "type": "minecraft:composite",
+    "models": [
+      {
+        "type": "minecraft:special",
+        "base": "functionalchemical:block/framed_chem_2",
+        "model": {
+          "type": "functionalstorage:framed"
+        }
+      },
+      {
+        "type": "minecraft:special",
+        "base": "functionalchemical:block/framed_chem_2",
+        "model": {
+          "type": "functionalchemical:chemical_drawer"
+        }
+      }
+    ]
+  }
+}

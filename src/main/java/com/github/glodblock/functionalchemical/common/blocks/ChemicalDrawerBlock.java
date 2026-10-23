@@ -13,7 +13,7 @@ import com.github.glodblock.functionalchemical.util.FCUtil;
 import com.hrznstudio.titanium.recipe.generator.TitaniumShapedRecipeBuilder;
 import com.hrznstudio.titanium.util.TileUtil;
 import mekanism.api.SerializationConstants;
-import mekanism.api.chemical.ChemicalStack;
+import com.github.glodblock.functionalchemical.common.inventory.ChemicalContents;
 import mekanism.common.registries.MekanismBlocks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -69,18 +69,7 @@ public class ChemicalDrawerBlock extends Drawer<ChemicalDrawerTile> {
         return getShapes(state, this.type);
     }
 
-    @Override
-    public void registerRecipe(@NotNull RecipeOutput consumer) {
-        if (this.type == FunctionalStorage.DrawerType.X_1) {
-            TitaniumShapedRecipeBuilder.shapedRecipe(this).pattern("PPP").pattern("PCP").pattern("PPP").define('P', ItemTags.PLANKS).define('C', MekanismBlocks.BASIC_CHEMICAL_TANK).save(consumer);
-        }
-        if (this.type == FunctionalStorage.DrawerType.X_2) {
-            TitaniumShapedRecipeBuilder.shapedRecipe(this, 2).pattern("PCP").pattern("PPP").pattern("PCP").define('P', ItemTags.PLANKS).define('C', MekanismBlocks.BASIC_CHEMICAL_TANK).save(consumer);
-        }
-        if (this.type == FunctionalStorage.DrawerType.X_4) {
-            TitaniumShapedRecipeBuilder.shapedRecipe(this, 4).pattern("CPC").pattern("PPP").pattern("CPC").define('P', ItemTags.PLANKS).define('C', MekanismBlocks.BASIC_CHEMICAL_TANK).save(consumer);
-        }
-    }
+
 
     public FunctionalStorage.DrawerType getType() {
         return this.type;
@@ -91,33 +80,26 @@ public class ChemicalDrawerBlock extends Drawer<ChemicalDrawerTile> {
         return DrawerBlock.getDefaultHitShapes(this.type, state);
     }
 
-    @Override
-    public void onRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (!state.is(newState.getBlock())) {
-            TileUtil.getTileEntity(worldIn, pos, ChemicalDrawerTile.class).ifPresent(ChemicalDrawerTile::onRemove);
-        }
-        super.onRemove(state, worldIn, pos, newState, isMoving);
-    }
-
-    @Override
     public void appendHoverText(ItemStack itemStack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         if (itemStack.has(FSAttachments.TILE)) {
-            CompoundTag tileTag = itemStack.getOrDefault(FSAttachments.TILE, new CompoundTag()).getCompound("chemTank");
+            CompoundTag root = itemStack.getOrDefault(FSAttachments.TILE, new CompoundTag());
+            CompoundTag data = root.contains("TitaniumData") ? root.getCompoundOrEmpty("TitaniumData") : root;
+            CompoundTag tileTag = data.getCompoundOrEmpty("chemTank");
             tooltip.add(Component.translatable("drawer.block.contents").withStyle(ChatFormatting.GRAY));
             for (int i = 0; i < this.type.getSlots(); ++i) {
-                var stackTag = tileTag.getCompound("#" + i).getCompound(SerializationConstants.STORED);
-                var stack = stackTag.isEmpty() ? ChemicalStack.EMPTY : ChemicalStack.parseOptional(Utils.registryAccess(), stackTag);
+                var stackTag = tileTag.getCompoundOrEmpty("#" + i).getCompoundOrEmpty(SerializationConstants.STORED);
+                var stack = stackTag.isEmpty() ? ChemicalContents.EMPTY : ChemicalContents.parseOptional(Utils.registryAccess(), stackTag);
                 if (!stack.isEmpty()) {
                     tooltip.add(Component.literal(" - " + ChatFormatting.YELLOW + FCUtil.getFormatedChemBigNumber(stack.getAmount()) + ChatFormatting.WHITE + " of ").append(stack.getTextComponent().copy().withStyle(ChatFormatting.GOLD)));
                 }
             }
             tooltip.add(Component.translatable("drawer.block.upgrades").withStyle(ChatFormatting.GRAY));
             boolean anyupgrade = false;
-            if (tileTag.contains("isCreative") && tileTag.getBoolean("isCreative")) {
+            if (data.getBooleanOr("isCreative", false)) {
                 tooltip.add(Component.literal("- ").withStyle(ChatFormatting.GRAY).append(Component.translatable("drawer.block.upgrades.is_creative").withStyle(ChatFormatting.LIGHT_PURPLE)));
                 anyupgrade = true;
             }
-            if (tileTag.contains("isVoid") && tileTag.getBoolean("isVoid")) {
+            if (data.getBooleanOr("isVoid", false)) {
                 tooltip.add(Component.literal("- ").withStyle(ChatFormatting.GRAY).append(Component.translatable("drawer.block.upgrades.is_void").withStyle(ChatFormatting.BLUE)));
                 anyupgrade = true;
             }

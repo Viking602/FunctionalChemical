@@ -11,12 +11,18 @@ import com.github.glodblock.functionalchemical.common.tileentities.ChemicalDrawe
 import com.github.glodblock.functionalchemical.util.FCUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
-import mekanism.api.chemical.ChemicalStack;
+import com.github.glodblock.functionalchemical.common.inventory.ChemicalContents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
@@ -26,22 +32,31 @@ import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
-public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTile> {
+public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTile, ChemDrawerTileTESR.RenderState> {
+
+    public static class RenderState extends BlockEntityRenderState { public ChemicalDrawerTile tile; }
+    @Override public RenderState createRenderState() { return new RenderState(); }
+    @Override public void extractRenderState(ChemicalDrawerTile tile, RenderState state, float partialTicks, Vec3 cameraPosition, ModelFeatureRenderer.CrumblingOverlay breakProgress) {
+        BlockEntityRenderState.extractBase(tile, state, breakProgress);
+        state.tile = tile;
+    }
 
     public ChemDrawerTileTESR(BlockEntityRendererProvider.Context ignored) {
 
     }
 
-    public static void renderChemStack(PoseStack matrixStack, MultiBufferSource bufferIn, int combinedLight, int combinedOverlay, ChemicalStack stack, long amount, long maxAmount, float scale, ControllableDrawerTile.DrawerOptions options, AABB bounds, boolean halfText) {
+    public static void renderChemStack(PoseStack matrixStack, SubmitNodeCollector collector, int combinedLight, ChemicalContents stack, long amount, long maxAmount, float scale, ControllableDrawerTile.DrawerOptions options, AABB bounds, boolean halfText) {
         if (options.isActive(ConfigurationToolItem.ConfigurationAction.TOGGLE_RENDER)) {
             matrixStack.pushPose();
-            var still = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(stack.getChemical().getIcon());
-            var builder = bufferIn.getBuffer(RenderType.solid());
-            float[] color = decomposeColorF(stack.getChemicalTint());
+
+            var still = mekanism.client.render.MekanismRenderer.getSprite(stack.getChemical().getIcon());
+            int tint = net.minecraft.util.ARGB.opaque(stack.getChemicalTint());
+            float[] color = decomposeColorF(tint);
             float red = color[1];
             float green = color[2];
             float blue = color[3];
             float alpha = amount == 0 ? 0.3f : color[0];
+
             float x1 = (float) bounds.minX;
             float x2 = (float) bounds.maxX;
             float y1 = (float) bounds.minY;
@@ -54,37 +69,34 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
             float by2 = (float) bounds.maxY;
             float bz1 = (float) bounds.minZ;
             float bz2 = (float) bounds.maxZ;
-            var posMat = matrixStack.last().pose();
 
-            //TOP
-            {
-                float u1 = still.getU(bx1);
-                float u2 = still.getU(bx2);
-                float v1 = still.getV(bz1);
-                float v2 = still.getV(bz2);
-                builder.addVertex(posMat, x1, y2, z2).setColor(red, green, blue, alpha).setUv(u1, v2).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 1f, 0f);
-                builder.addVertex(posMat, x2, y2, z2).setColor(red, green, blue, alpha).setUv(u2, v2).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 1f, 0f);
-                builder.addVertex(posMat, x2, y2, z1).setColor(red, green, blue, alpha).setUv(u2, v1).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 1f, 0f);
-                builder.addVertex(posMat, x1, y2, z1).setColor(red, green, blue, alpha).setUv(u1, v1).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 1f, 0f);
-            }
-            //FRONT
-            {
-                float u1 = still.getU(bx1);
-                float u2 = still.getU(bx2);
-                float v1 = still.getV(by1);
-                float v2 = still.getV(by2);
-                builder.addVertex(posMat, x2, y1, z2).setColor(red, green, blue, alpha).setUv(u2, v1).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 0f, 1f);
-                builder.addVertex(posMat, x2, y2, z2).setColor(red, green, blue, alpha).setUv(u2, v2).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 0f, 1f);
-                builder.addVertex(posMat, x1, y2, z2).setColor(red, green, blue, alpha).setUv(u1, v2).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 0f, 1f);
-                builder.addVertex(posMat, x1, y1, z2).setColor(red, green, blue, alpha).setUv(u1, v1).setOverlay(combinedOverlay).setLight(combinedLight).setNormal(0f, 0f, 1f);
-            }
+            float u1top = still.getU(bx1), u2top = still.getU(bx2);
+            float v1top = still.getV(bz1), v2top = still.getV(bz2);
+            float u1front = still.getU(bx1), u2front = still.getU(bx2);
+            float v1front = still.getV(by1), v2front = still.getV(by2);
+
+            final float finalRed = red, finalGreen = green, finalBlue = blue, finalAlpha = alpha;
+
+            collector.submitCustomGeometry(matrixStack, RenderTypes.entityTranslucent(TextureAtlas.LOCATION_BLOCKS), (pose, buffer) -> {
+                // TOP
+                buffer.addVertex(pose, x1, y2, z2).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u1top, v2top).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 1f, 0f);
+                buffer.addVertex(pose, x2, y2, z2).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u2top, v2top).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 1f, 0f);
+                buffer.addVertex(pose, x2, y2, z1).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u2top, v1top).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 1f, 0f);
+                buffer.addVertex(pose, x1, y2, z1).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u1top, v1top).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 1f, 0f);
+                // FRONT
+                buffer.addVertex(pose, x2, y1, z2).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u2front, v1front).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 0f, 1f);
+                buffer.addVertex(pose, x2, y2, z2).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u2front, v2front).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 0f, 1f);
+                buffer.addVertex(pose, x1, y2, z2).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u1front, v2front).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 0f, 1f);
+                buffer.addVertex(pose, x1, y1, z2).setColor(finalRed, finalGreen, finalBlue, finalAlpha).setUv(u1front, v1front).setOverlay(OverlayTexture.NO_OVERLAY).setLight(combinedLight).setNormal(0f, 0f, 1f);
+            });
             matrixStack.popPose();
         }
+
         if (options.isActive(ConfigurationToolItem.ConfigurationAction.TOGGLE_NUMBERS)) {
             matrixStack.pushPose();
             matrixStack.translate(0.5, 0.84, 0.97);
             if (halfText) matrixStack.translate(-0.25, 0, 0);
-            DrawerRenderer.renderText(matrixStack, bufferIn, combinedOverlay, Component.literal(ChatFormatting.WHITE + FCUtil.getFormatedChemBigNumber(amount)), Direction.NORTH, scale);
+            DrawerRenderer.renderText(matrixStack, collector, combinedLight, Component.literal(ChatFormatting.WHITE + "" + FCUtil.getFormatedChemBigNumber(amount)), Direction.NORTH, scale);
             matrixStack.popPose();
         }
         matrixStack.pushPose();
@@ -93,7 +105,7 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
             matrixStack.scale(0.5f, 0.65f, 0.5f);
             matrixStack.translate(-0.5, -0.18, 0);
         }
-        DrawerRenderer.renderIndicator(matrixStack, bufferIn, combinedLight, combinedOverlay, Math.min(1, amount / (float) maxAmount), options);
+        DrawerRenderer.renderIndicator(matrixStack, collector, combinedLight, Math.min(1, amount / (float) maxAmount), options);
         matrixStack.popPose();
     }
 
@@ -112,7 +124,10 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
     }
 
     @Override
-    public void render(@NotNull ChemicalDrawerTile tile, float partialTicks, @NotNull PoseStack matrixStack, @NotNull MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn) {
+    public void submit(RenderState state, PoseStack matrixStack, SubmitNodeCollector bufferIn, CameraRenderState camera) {
+        ChemicalDrawerTile tile = state.tile;
+        if (tile == null) return;
+        int combinedLightIn = state.lightCoords;
         if (Minecraft.getInstance().player != null && !tile.getBlockPos().closerThan(Minecraft.getInstance().player.getOnPos(), FunctionalStorageClientConfig.DRAWER_RENDER_RANGE)) {
             return;
         }
@@ -159,21 +174,21 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
             matrixStack.translate(-1, 0, 0);
             matrixStack.mulPose(Axis.YP.rotationDegrees(90));
         }
-        combinedLightIn = LevelRenderer.getLightColor(tile.getLevel(), tile.getBlockPos().relative(facing));
+        combinedLightIn = LevelRenderer.getLightCoords(tile.getLevel(), tile.getBlockPos().relative(facing));
         if (tile.getDrawerType() == FunctionalStorage.DrawerType.X_1)
-            render1Slot(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, tile);
+            render1Slot(matrixStack, bufferIn, combinedLightIn, tile);
         if (tile.getDrawerType() == FunctionalStorage.DrawerType.X_2)
-            render2Slot(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, tile);
+            render2Slot(matrixStack, bufferIn, combinedLightIn, tile);
         if (tile.getDrawerType() == FunctionalStorage.DrawerType.X_4)
-            render4Slot(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, tile);
+            render4Slot(matrixStack, bufferIn, combinedLightIn, tile);
         matrixStack.pushPose();
         matrixStack.translate(0, 0, 0.9688);
-        DrawerRenderer.renderUpgrades(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, tile);
+        DrawerRenderer.renderUpgrades(matrixStack, bufferIn, combinedLightIn, tile);
         matrixStack.popPose();
         matrixStack.popPose();
     }
 
-    private void render1Slot(PoseStack matrixStack, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn, ChemicalDrawerTile tile) {
+    private void render1Slot(PoseStack matrixStack, SubmitNodeCollector bufferIn, int combinedLightIn, ChemicalDrawerTile tile) {
         var stack = tile.getRenderStack(0);
         if (stack.valid()) {
             var displayAmount = stack.stack().getAmount();
@@ -181,11 +196,11 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
                 displayAmount = 0;
             }
             var bounds = new AABB(1 / 16D, 1.25 / 16D, 1 / 16D, 15 / 16D, 1.25 / 16D + (stack.stack().getAmount() / (double) tile.getCapacity()) * (12.5 / 16D), 15 / 16D);
-            renderChemStack(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, false);
+            renderChemStack(matrixStack, bufferIn, combinedLightIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, false);
         }
     }
 
-    private void render2Slot(PoseStack matrixStack, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn, ChemicalDrawerTile tile) {
+    private void render2Slot(PoseStack matrixStack, SubmitNodeCollector bufferIn, int combinedLightIn, ChemicalDrawerTile tile) {
         {
             var stack = tile.getRenderStack(0);
             if (stack.valid()) {
@@ -194,7 +209,7 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
                     displayAmount = 0;
                 }
                 var bounds = new AABB(1 / 16D, 1.25 / 16D, 1 / 16D, 15 / 16D, 1.25 / 16D + (stack.stack().getAmount() / (double) tile.getCapacity()) * (5.5 / 16D), 15 / 16D);
-                renderChemStack(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, false);
+                renderChemStack(matrixStack, bufferIn, combinedLightIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, false);
             }
         }
         {
@@ -207,13 +222,13 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
                     displayAmount = 0;
                 }
                 var bounds = new AABB(1 / 16D, 1.25 / 16D, 1 / 16D, 15 / 16D, 1.25 / 16D + (stack.stack().getAmount() / (double) tile.getCapacity()) * (5.5 / 16D), 15 / 16D);
-                renderChemStack(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, false);
+                renderChemStack(matrixStack, bufferIn, combinedLightIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, false);
                 matrixStack.popPose();
             }
         }
     }
 
-    private void render4Slot(PoseStack matrixStack, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn, ChemicalDrawerTile tile) {
+    private void render4Slot(PoseStack matrixStack, SubmitNodeCollector bufferIn, int combinedLightIn, ChemicalDrawerTile tile) {
         {
             var stack = tile.getRenderStack(0);
             if (stack.valid()) {
@@ -224,7 +239,7 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
                     displayAmount = 0;
                 }
                 var bounds = new AABB(1 / 16D, 1.25 / 16D, 1 / 16D, 8 / 16D, 1.25 / 16D + (stack.stack().getAmount() / (double) tile.getCapacity()) * (5.5 / 16D), 15 / 16D);
-                renderChemStack(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
+                renderChemStack(matrixStack, bufferIn, combinedLightIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
                 matrixStack.popPose();
             }
         }
@@ -237,7 +252,7 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
                     displayAmount = 0;
                 }
                 var bounds = new AABB(1 / 16D, 1.25 / 16D, 1 / 16D, 8 / 16D, 1.25 / 16D + (stack.stack().getAmount() / (double) tile.getCapacity()) * (5.5 / 16D), 15 / 16D);
-                renderChemStack(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
+                renderChemStack(matrixStack, bufferIn, combinedLightIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
                 matrixStack.popPose();
             }
         }
@@ -251,7 +266,7 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
                     displayAmount = 0;
                 }
                 var bounds = new AABB(1 / 16D, 1.25 / 16D, 1 / 16D, 8 / 16D, 1.25 / 16D + (stack.stack().getAmount() / (double) tile.getCapacity()) * (5.5 / 16D), 15 / 16D);
-                renderChemStack(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
+                renderChemStack(matrixStack, bufferIn, combinedLightIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
                 matrixStack.popPose();
             }
         }
@@ -265,7 +280,7 @@ public class ChemDrawerTileTESR implements BlockEntityRenderer<ChemicalDrawerTil
                     displayAmount = 0;
                 }
                 var bounds = new AABB(1 / 16D, 1.25 / 16D, 1 / 16D, 8 / 16D, 1.25 / 16D + (stack.stack().getAmount() / (double) tile.getCapacity()) * (5.5 / 16D), 15 / 16D);
-                renderChemStack(matrixStack, bufferIn, combinedLightIn, combinedOverlayIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
+                renderChemStack(matrixStack, bufferIn, combinedLightIn, stack.stack(), displayAmount, tile.getCapacity(), 0.007f, tile.getDrawerOptions(), bounds, true);
                 matrixStack.popPose();
             }
         }

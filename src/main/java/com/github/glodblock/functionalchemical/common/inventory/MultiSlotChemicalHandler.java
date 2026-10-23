@@ -1,60 +1,21 @@
 package com.github.glodblock.functionalchemical.common.inventory;
-
-import mekanism.api.Action;
-import mekanism.api.chemical.ChemicalStack;
-import mekanism.api.chemical.IChemicalHandler;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.function.IntFunction;
-
-public class MultiSlotChemicalHandler implements IChemicalHandler {
-
+import mekanism.api.AutomationType;
+import mekanism.api.chemical.ChemicalResource;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+public class MultiSlotChemicalHandler implements ResourceHandler<ChemicalResource> {
     private final ChemicalDrawerTank[] tanks;
-
-    public MultiSlotChemicalHandler(int size, IntFunction<? extends ChemicalDrawerTank> creator) {
-        this.tanks = new ChemicalDrawerTank[size];
-        for (int i = 0; i < size; i++) {
-            this.tanks[i] = creator.apply(i);
-        }
+    public MultiSlotChemicalHandler(int size,IntFunction<? extends ChemicalDrawerTank> factory) {
+        tanks=new ChemicalDrawerTank[size];for(int i=0;i<size;i++)tanks[i]=factory.apply(i);
     }
-
-    public ChemicalDrawerTank[] getInternalTanks() {
-        return this.tanks;
-    }
-
-    @Override
-    public int getChemicalTanks() {
-        return this.tanks.length;
-    }
-
-    @Override
-    public @NotNull ChemicalStack getChemicalInTank(int tank) {
-        return this.tanks[tank].getStack();
-    }
-
-    @Override
-    public void setChemicalInTank(int tank, @NotNull ChemicalStack stack) {
-        this.tanks[tank].setStack(stack);
-    }
-
-    @Override
-    public long getChemicalTankCapacity(int tank) {
-        return this.tanks[tank].getCapacity();
-    }
-
-    @Override
-    public boolean isValid(int tank, @NotNull ChemicalStack stack) {
-        return this.tanks[tank].isValid(stack);
-    }
-
-    @Override
-    public @NotNull ChemicalStack insertChemical(int tank, @NotNull ChemicalStack stack, @NotNull Action action) {
-        return this.tanks[tank].insertChemical(stack, action);
-    }
-
-    @Override
-    public @NotNull ChemicalStack extractChemical(int tank, long amount, @NotNull Action action) {
-        return this.tanks[tank].extractChemical(amount, action);
-    }
-
+    public ChemicalDrawerTank[] getInternalTanks() { return tanks; }
+    public ChemicalContents getChemicalInTank(int slot) { return tanks[slot].getStack(); }
+    @Override public int size() { return tanks.length; }
+    @Override public ChemicalResource getResource(int slot) { return tanks[slot].resource(); }
+    @Override public long getAmountAsLong(int slot) { return tanks[slot].amountAsLong(); }
+    @Override public long getCapacityAsLong(int slot,ChemicalResource resource) { return tanks[slot].capacityAsLong(resource); }
+    @Override public boolean isValid(int slot,ChemicalResource resource) { return tanks[slot].isValid(resource); }
+    @Override public int insert(int slot,ChemicalResource resource,int amount,TransactionContext tx) { return tanks[slot].insert(resource,amount,tx,AutomationType.EXTERNAL); }
+    @Override public int extract(int slot,ChemicalResource resource,int amount,TransactionContext tx) { return tanks[slot].extract(resource,amount,tx,AutomationType.EXTERNAL); }
 }

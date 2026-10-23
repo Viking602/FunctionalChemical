@@ -10,7 +10,7 @@ import com.github.glodblock.functionalchemical.common.tileentities.RadioactiveDr
 import com.hrznstudio.titanium.module.ModuleController;
 import com.hrznstudio.titanium.nbthandler.NBTManager;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
@@ -28,13 +28,8 @@ public class FunctionalChemical extends ModuleController {
         super(container);
         assert INSTANCE == null;
         INSTANCE = this;
-        bus.addListener((RegisterEvent e) -> {
-            if (e.getRegistryKey().equals(Registries.BLOCK)) {
-                FCSingletons.init(FCRegistryHandler.INSTANCE);
-                FCRegistryHandler.INSTANCE.runRegister();
-            }
-        });
-        if (FMLEnvironment.dist.isClient()) {
+        FCSingletons.init(FCRegistryHandler.INSTANCE);
+        if (FMLEnvironment.getDist().isClient()) {
             bus.register(ClientRegistryHandler.INSTANCE);
         }
         bus.register(FCRegistryHandler.INSTANCE);
@@ -49,8 +44,8 @@ public class FunctionalChemical extends ModuleController {
         NBTManager.getInstance().scanTileClassForAnnotations(FramedRadioactiveDrawerTile.class);
     }
 
-    public static ResourceLocation id(String id) {
-        return ResourceLocation.fromNamespaceAndPath(MODID, id);
+    public static Identifier id(String id) {
+        return Identifier.fromNamespaceAndPath(MODID, id);
     }
 
 }

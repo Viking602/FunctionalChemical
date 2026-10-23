@@ -1,22 +1,10 @@
 {
-  "neoforge:conditions": [
-    {
-      "type": "neoforge:item_exists",
-      "item": "functionalchemical:decay_upgrade"
-    }
-  ],
   "type": "minecraft:crafting_shaped",
   "category": "misc",
   "key": {
-    "B": {
-      "tag": "c:ingots/bronze"
-    },
-    "D": {
-      "tag": "functionalstorage:drawer"
-    },
-    "E": {
-      "item": "mekanism:hdpe_sheet"
-    }
+    "B": "#c:ingots/bronze",
+    "D": "#functionalstorage:drawer",
+    "E": "mekanism:hdpe_sheet"
   },
   "pattern": [
     "EEE",
@@ -24,7 +12,6 @@
     "EEE"
   ],
   "result": {
-    "count": 1,
     "id": "functionalchemical:decay_upgrade"
   }
 }

@@ -1,13 +1,7 @@
 {
-  "neoforge:conditions": [
-    {
-      "type": "neoforge:item_exists",
-      "item": "functionalchemical:decay_upgrade"
-    }
-  ],
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_item": {
+    "has_hdpe": {
       "conditions": {
         "items": [
           {
@@ -27,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_item"
+      "has_hdpe"
     ]
   ],
   "rewards": {

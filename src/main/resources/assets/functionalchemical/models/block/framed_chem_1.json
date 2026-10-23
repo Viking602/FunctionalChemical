@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/block",
-  "loader": "functionalstorage:framedblock",
+  "loader": "neoforge:composite",
   "textures": {
     "particle": "functionalstorage:block/framed_side"
   },

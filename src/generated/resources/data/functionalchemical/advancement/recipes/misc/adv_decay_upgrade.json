@@ -1,17 +1,11 @@
 {
-  "neoforge:conditions": [
-    {
-      "type": "neoforge:item_exists",
-      "item": "functionalchemical:adv_decay_upgrade"
-    }
-  ],
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_item": {
+    "has_decay_upgrade": {
       "conditions": {
         "items": [
           {
-            "items": "#c:storage_blocks/refined_glowstone"
+            "items": "functionalchemical:decay_upgrade"
           }
         ]
       },
@@ -27,7 +21,7 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_item"
+      "has_decay_upgrade"
     ]
   ],
   "rewards": {

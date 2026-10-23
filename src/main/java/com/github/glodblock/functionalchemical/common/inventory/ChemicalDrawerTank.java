@@ -1,88 +1,54 @@
 package com.github.glodblock.functionalchemical.common.inventory;
 
+import java.util.function.*;
 import com.github.glodblock.functionalchemical.common.tileentities.ChemicalDrawerTile;
-import mekanism.api.Action;
 import mekanism.api.AutomationType;
-import mekanism.api.chemical.BasicChemicalTank;
-import mekanism.api.chemical.ChemicalStack;
+import mekanism.api.chemical.*;
 import mekanism.api.chemical.attribute.ChemicalAttributeValidator;
 import mekanism.api.functions.ConstantPredicates;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import net.neoforged.neoforge.transfer.TransferPreconditions;
+import net.neoforged.neoforge.transfer.transaction.TransactionContext;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 
 public class ChemicalDrawerTank extends BasicChemicalTank {
-
     private final Supplier<ChemicalDrawerTile> host;
     private long capacity;
-
-    public ChemicalDrawerTank(long capacity, Supplier<ChemicalDrawerTile> host, Predicate<ChemicalStack> filter) {
-        this(capacity, host, filter, null);
+    public ChemicalDrawerTank(long capacity, Supplier<ChemicalDrawerTile> host, Predicate<ChemicalResource> filter) { this(capacity,host,filter,null); }
+    public ChemicalDrawerTank(long capacity, Supplier<ChemicalDrawerTile> host, Predicate<ChemicalResource> filter, ChemicalAttributeValidator validator) {
+        super(0, ConstantPredicates.alwaysTrueBi(), ConstantPredicates.alwaysTrueBi(), filter, null, null, validator, () -> host.get().onChange());
+        this.host=host;this.capacity=capacity;
     }
-
-    public ChemicalDrawerTank(long capacity, Supplier<ChemicalDrawerTile> host, Predicate<ChemicalStack> filter, ChemicalAttributeValidator validator) {
-        super(0, ConstantPredicates.alwaysTrueBi(), ConstantPredicates.alwaysTrueBi(), filter, validator, () -> host.get().onChange(), null);
-        this.host = host;
-        this.capacity = capacity;
+    public void setCapacity(long value) {
+        if (value < 0) throw new IllegalArgumentException("Negative capacity");
+        if (super.amountAsLong() > value) setContents(resource(),value,null);
+        capacity=value;
     }
-
-    public void setCapacity(long capacity) {
-        if (capacity < this.capacity) {
-            var stack = super.getStack();
-            if (stack.getAmount() > capacity) {
-                stack.setAmount(capacity);
-            }
-        }
-        this.capacity = capacity;
+    @Override public long capacityAsLong(ChemicalResource resource) {
+        if (!resource.isEmpty() && !isValid(resource)) return 0;
+        return host.get().isCreative() ? Long.MAX_VALUE : capacity;
     }
-
-    @Override
-    public long getCapacity() {
-        if (this.host.get().isCreative()) {
-            return Long.MAX_VALUE;
-        }
-        return this.capacity;
+    @Override public long amountAsLong() { return host.get().isCreative() && !asStack().isEmpty() ? Long.MAX_VALUE : super.amountAsLong(); }
+    @Override public int insert(ChemicalResource resource,int amount,TransactionContext tx,AutomationType type) {
+        int inserted=super.insert(resource,amount,tx,type);
+        if (host.get().isVoid() && isValid(resource) && (host.get().isLocked() || resource.equals(resource()))) return amount;
+        return inserted;
     }
-
-    @Override
-    public @NotNull ChemicalStack insert(@NotNull ChemicalStack stack, @NotNull Action action, @NotNull AutomationType type) {
-        var overflow = super.insert(stack, action, type);
-        if (this.host.get().isVoid() &&
-                ((this.host.get().isLocked() && this.isValid(stack)) ||
-                 (!this.getStack().isEmpty() && this.isTypeEqual(stack))))
-            return ChemicalStack.EMPTY;
-        return overflow;
+    @Override public int extract(ChemicalResource resource,int amount,TransactionContext tx,AutomationType type) {
+        TransferPreconditions.checkNonEmptyNonNegative(resource,amount);
+        if (host.get().isCreative()) return !isEmpty() && resource.equals(resource()) ? amount : 0;
+        return super.extract(resource,amount,tx,type);
     }
-
-    @Override
-    public @NotNull ChemicalStack extract(long amount, @NotNull Action action, @NotNull AutomationType type) {
-        if (this.host.get().isCreative()) {
-            var extracted = super.extract(1, Action.SIMULATE, type);
-            extracted.setAmount(amount);
-            return extracted;
-        }
-        return super.extract(amount, action, type);
+    public ChemicalContents getStack() { return new ChemicalContents(resource(),amountAsLong()); }
+    public long getStored() { return amountAsLong(); }
+    public void setEmpty() { setContents(ChemicalResource.EMPTY,0,null); }
+    public CompoundTag serializeNBT(HolderLookup.Provider registries) {
+        var result=new CompoundTag();
+        if (!isEmpty()) result.put("stored", new ChemicalContents(resource(),super.amountAsLong()).save(registries));
+        return result;
     }
-
-    @Override
-    public long getStored() {
-        var stored = super.getStored();
-        if (stored > 0 && this.host.get().isCreative()) {
-            return Long.MAX_VALUE;
-        }
-        return stored;
+    public void deserializeNBT(HolderLookup.Provider registries,CompoundTag nbt) {
+        var contents=ChemicalContents.parseOptional(registries,nbt.getCompoundOrEmpty("stored"));
+        setContents(contents.resource(),contents.amount(),null);
     }
-
-    @Override
-    public @NotNull ChemicalStack getStack() {
-        var stack = super.getStack();
-        if (!stack.isEmpty() && this.host.get().isCreative()) {
-            var copy = stack.copy();
-            copy.setAmount(Long.MAX_VALUE);
-            return copy;
-        }
-        return stack;
-    }
-
 }

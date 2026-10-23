@@ -2,7 +2,7 @@ package com.github.glodblock.functionalchemical.common.inventory;
 
 import com.github.glodblock.functionalchemical.common.tileentities.ChemicalDrawerTile;
 import mekanism.api.chemical.Chemical;
-import mekanism.api.chemical.ChemicalStack;
+import com.github.glodblock.functionalchemical.common.inventory.ChemicalContents;
 import mekanism.api.chemical.attribute.ChemicalAttributeValidator;
 import mekanism.api.datamaps.chemical.attribute.ChemicalRadioactivity;
 import mekanism.api.datamaps.chemical.attribute.IChemicalAttribute;
@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 public class RadioactiveDrawerTank extends ChemicalDrawerTank {
 
     @SuppressWarnings("removal")
-    public static final ChemicalAttributeValidator VALIDATOR = new ChemicalAttributeValidator.ChemicalAttributeValidatorLegacyAdapter() {
+    public static final ChemicalAttributeValidator VALIDATOR = new ChemicalAttributeValidator() {
 
         @Override
         public boolean validate(IChemicalAttribute attr) {
@@ -28,13 +28,13 @@ public class RadioactiveDrawerTank extends ChemicalDrawerTank {
 
     };
 
-    public RadioactiveDrawerTank(long capacity, Supplier<ChemicalDrawerTile> host, Predicate<ChemicalStack> filter) {
+    public RadioactiveDrawerTank(long capacity, Supplier<ChemicalDrawerTile> host, Predicate<mekanism.api.chemical.ChemicalResource> filter) {
         super(capacity, host, filter, VALIDATOR);
     }
 
     @Override
-    public boolean isValid(@NotNull ChemicalStack stack) {
-        if (stack.isRadioactive()) {
+    public boolean isValid(@NotNull mekanism.api.chemical.ChemicalResource stack) {
+        if (stack.getChemical().isRadioactive()) {
             return super.isValid(stack);
         } else {
             return false;
